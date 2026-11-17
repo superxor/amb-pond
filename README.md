@@ -14,7 +14,7 @@ POND is derived from [AMB-1](https://github.com/charlesvestal/fm1-amb) by Charle
   </tr>
 </table>
 
-The picture is a pond seen from the bank. Flower heads shift a little in the wind. Now and then a koi rises, crosses the open water, and sinks again. The header keeps the piece, the key, and the tempo. The knob strip slides away after three seconds, and the pond continues into that space. Turn a knob, or change page, and the strip comes back.
+The picture is a pond seen from the bank. Flower heads shift a little in the wind. Now and then a koi rises, crosses the open water, and sinks again. The header keeps the piece, the key, and the tempo.
 
 Rain falls as streaks and lands in rings that spread and fade. The water sits under cloud. Thunder is darker. Lightning flashes, sometimes with a bolt and sometimes only as light, and it does not always arrive with the sound. Freeze the pond and the corner reads "still".
 
@@ -35,6 +35,8 @@ PRESETS steps through the nine pieces. ALGO is the scale.
 | Thunder | The pad and the drops stay quiet. Rain, a long bass roll, and lightning. C Dorian. |
 
 ## Controls
+
+The knob menu autohides after 3 seconds. The pond fills the space it leaves. Turn a knob, or change page, and the menu comes back.
 
 | | |
 | --- | --- |
