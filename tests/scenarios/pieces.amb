@@ -1,0 +1,60 @@
+# the pieces: PRESETS picks one, each remembers its settings, SAVE held resets one, all saved
+wait 500
+expect piece 0
+# Pond's pad down (the Pad page: ENV)
+tap ENV
+spin K1 -10
+expect par0 48
+# the next piece: Lily, its recipe (tempo 56, no drips, E pentatonic major)
+turn PRESET 1
+expect piece 1
+expect par18 56
+expect par3 0
+expect par19 4
+expect pool 0x295
+wait 8000
+shot departures.png
+# and Reeds
+turn PRESET 1
+expect piece 2
+expect par1 0
+wait 20000
+shot voices.png
+expect pad_level >10
+# the pad's colour (the Pad page's fourth knob), kept with the piece (Reeds starts as Voices)
+expect par22 1
+spin K4 -1
+expect par22 0
+wait 3000
+# back to Pond: as it was left
+turn PRESET -2
+expect par22 0
+expect piece 0
+expect par0 48
+spin K4 1
+expect par22 1
+turn PRESET 2
+expect par22 0
+turn PRESET -2
+expect par22 1
+# SAVE held: Pond's recipe again
+press SAVE
+wait 1700
+release SAVE
+expect par0 58
+expect par22 0
+expect store_writes 0
+# a tweak, saved, survives a reboot, on the piece it was made on (the Drops page: ARP)
+tap ARP
+spin K1 5
+expect par1 67
+turn PRESET 6
+expect piece 6
+tap SAVE
+expect store_writes 1
+reboot
+wait 300
+expect piece 6
+turn PRESET 2
+expect piece 0
+expect par1 67

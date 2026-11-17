@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0c241c">
+<title>POND · A generative garden pond</title>
+<meta name="description" content="POND: a generative garden pond for the FM-1, derived from AMB-1.">
+<style>
+/* a garden pond: deep water, lily pads, pale writing */
+:root {
+  --paper: #0c241c; --green-1: #16382c; --green-2: #24543e; --green-3: #8fbf6a;
+  --river: #d7efc0; --river-2: #b6e07a; --ink: #e7f0d8;
+  color-scheme: dark;
+}
+body { background: var(--paper); color: var(--ink); margin: 0; padding-inline: 16px; padding-block: 12px 40px;
+       font: 15px/1.4 "Helvetica Neue", Helvetica, Arial, sans-serif; }
+#page { max-width: 980px; margin: 0 auto; }
+h1 { font-weight: 300; font-size: 26px; letter-spacing: .02em; margin: 6px 0 2px; text-transform: uppercase; }
+h1 small { font-size: 15px; }
+#sub { text-transform: uppercase; margin: 0 0 10px; }
+hr { border: 0; border-top: 1px solid var(--green-2); margin: 10px 0; }
+a { color: var(--ink); }
+button, select, input { font: inherit; color: var(--ink); }
+button { background: var(--green-2); border: 1px solid var(--green-3); padding: 2px 10px; cursor: pointer; }
+button[aria-pressed="true"] { background: var(--river); color: var(--paper); }
+select { background: var(--green-1); border: 1px solid var(--green-3); padding: 1px 2px; }
+input[type="range"] { accent-color: var(--river-2); width: 100%; margin: 0; }
+input[type="checkbox"] { accent-color: var(--river-2); }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 8px 0; }
+#wrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+#left { flex: 1 1 360px; max-width: 540px; }
+#right { flex: 1 1 340px; }
+/* the pieces as an album's tracks, listed beside the garden display */
+#stage { display: flex; gap: 14px; align-items: flex-start; }
+#tracks { flex: 0 0 auto; }
+#tracks .cap { text-transform: uppercase; letter-spacing: .06em; font-size: 13px; margin: 0 0 4px; }
+#tracks button { display: flex; align-items: baseline; gap: .6em; width: 100%; white-space: nowrap;
+  background: none; border: 0; border-bottom: 1px solid var(--green-3); padding: 5px 4px; margin: 0; text-align: left; }
+#tracks button:first-of-type { border-top: 1px solid var(--green-3); }
+#tracks .num { color: var(--river-2); font-variant-numeric: tabular-nums; min-width: 1.1em; }
+#tracks button:hover { background: var(--green-1); }
+#tracks button[aria-current="true"] { background: var(--river); color: var(--paper); }
+#tracks button[aria-current="true"] .num { color: var(--paper); }
+#display { flex: 1 1 0; min-width: 0; }
+canvas { display: block; width: 100%; aspect-ratio: 240 / 144; cursor: pointer; touch-action: manipulation; }
+#msg { min-height: 1.4em; margin: 2px 0; }
+fieldset { border: 1px solid var(--green-2); margin: 0 0 10px; padding: 4px 10px 8px; }
+legend { text-transform: uppercase; padding: 0 4px; }
+table { width: 100%; border-collapse: collapse; }
+td { padding: 3px 0; vertical-align: middle; }
+td.n { width: 6.5em; }
+td.v { width: 4.5em; text-align: right; font-variant-numeric: tabular-nums; }
+#scale button { width: 2.6em; padding: 2px 0; margin: 1px; background: var(--green-1); }
+#scale button[aria-pressed="true"] { background: var(--green-3); color: var(--paper); }
+#scale button.root { outline: 2px solid var(--river-2); outline-offset: -3px; }
+#go { font-size: 17px; padding: 4px 18px; background: var(--river); color: var(--paper); }
+#foot { margin-top: 16px; font-size: 13px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+#scale button.root:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div id="page">
+<main>
+<h1>POND</h1>
+<p id="sub">A generative garden pond</p>
+<hr>
+
+<div class="bar">
+  <span id="keyLine"></span>
+</div>
+<div class="bar">
+  <button id="go">Begin</button>
+  <button id="play" hidden>Rest</button>
+  <button id="freeze" aria-pressed="false">Freeze</button>
+  <button id="next">Next chord</button>
+  <label for="colour">Pad</label> <select id="colour"><option value="0">Rhodes</option><option value="1">Voices</option></select>
+  <span role="group" aria-labelledby="octName">
+    <span id="octName">Drops octave</span> <button id="octDn" aria-label="Drops an octave down">&minus;</button>
+    <span id="octVal">0</span> <button id="octUp" aria-label="Drops an octave up">+</button></span>
+</div>
+
+<div id="wrap">
+  <div id="left">
+    <div id="stage">
+      <nav id="tracks" aria-label="Pieces"><p class="cap" aria-hidden="true">Pieces</p></nav>
+      <div id="display">
+        <canvas id="ring" role="img" aria-label="The pond: lily pads on the water for the scale."></canvas>
+        <p id="msg" role="status"></p>
+      </div>
+    </div>
+  </div>
+  <div id="right"></div>
+</div>
+
+<!-- what changes by itself (the chord, the piece, growing or resting), for a screen reader: polite, a few words -->
+<div id="announce" class="sr" aria-live="polite" aria-atomic="true"></div>
+</main>
+<hr>
+<footer id="foot">Click a lily pad, or its button under Key, to add that note to the scale or take it out. Each piece keeps its settings in this browser.
+  <button id="reset">Reset this piece</button> <label><input type="checkbox" id="awake"> Keep screen on</label><br>
+  A garden pond derived from AMB-1. The same engine runs on the M-VAVE FM-1.</footer>
+</div>
+
+<script>
+"use strict";
+// ------------------------------------------------------------------ the engine's names (amb.h)
+const P = { PAD: 0, BELLS: 1, BASS: 2, PULSE: 3, DENSITY: 4, EVOLVE: 5, DRIFT: 6, HITS: 7, ECHO: 8, ETIME: 9, REVERB: 10, SIZE: 11,
+            BRIGHT: 12, SWELL: 13, BTONE: 14, MOTION: 15, TUNE: 16, MIDI: 17, TEMPO: 18, ROOT: 19, MODE: 20, BOCT: 21, PADTONE: 22,
+            BASSOCT: 23, GLIDE: 24, FIFTH: 25, SWING: 26, HATS: 27 };
+const NLOOP = 4, LOOP_MAX = 29;
+const STORE = "pond-app-1";
+// the layers, as the FM-1's pages: [parameter, its name there]
+const GROUPS = [
+  ["Pond", [[P.EVOLVE, "Evolve"], [P.MOTION, "Motion"], [P.DRIFT, "Drift"]]],
+  ["Pad", [[P.PAD, "Level"], [P.SWELL, "Swell"], [P.BRIGHT, "Bright"]]],
+  ["Drops", [[P.BELLS, "Level"], [P.DENSITY, "Density"], [P.BTONE, "Tone"]]],
+  ["Depth", [[P.BASS, "Level"], [P.BASSOCT, "Octave"], [P.GLIDE, "Glide"], [P.FIFTH, "Fifth"]]],
+  ["Drips", [[P.PULSE, "Level"], [P.HITS, "Hits"], [P.SWING, "Swing"], [P.HATS, "Splash"]]],
+  ["Still", [[P.ECHO, "Echo"], [P.ETIME, "Echo time"], [P.REVERB, "Reverb"], [P.SIZE, "Size"]]],
+];
+const TIP = { [P.DENSITY]: "notes per drop loop", [P.EVOLVE]: "how often things change and rest", [P.DRIFT]: "how long a chord lasts",
+              [P.HITS]: "drip hits", [P.ECHO]: "tape echo send", [P.ETIME]: "tape loop length", [P.REVERB]: "plate send",
+              [P.SIZE]: "plate decay, echo feedback", [P.BRIGHT]: "pad filter", [P.SWELL]: "breath length",
+              [P.BTONE]: "round drop to bright splash", [P.MOTION]: "how far it drifts and swells", [P.BASSOCT]: "the bass an octave down or up",
+              [P.GLIDE]: "how slowly the bass slides to its note", [P.FIFTH]: "how often the bass leans on the fifth",
+              [P.SWING]: "the off sixteenths late", [P.HATS]: "dark and round to bright, with a little noise" };
+const $ = (id) => document.getElementById(id);
+// names in words, as the FM-1's screen reader says them (ui.c CHORD_Q, firmware/words.tsv)
+const SPOKEN_NOTE = { "C#": "C sharp", "Eb": "E flat", "F#": "F sharp", "Ab": "A flat", "Bb": "B flat" };
+const CHORD_Q = { "": "major", m: "minor", 7: "7", M7: "major 7", m7: "minor 7", 6: "6", m6: "minor 6", add9: "add 9",
+                  madd9: "minor add 9", aug: "augmented", dim: "diminished", dim7: "diminished 7", m7b5: "half diminished",
+                  mM7: "minor major 7", sus2: "suspended 2", sus4: "suspended 4", "7sus4": "7 suspended 4", 5: "5" };
+const MODE_WORDS = { "Mixolyd.": "Mixolydian", "Pent maj": "pentatonic major", "Pent min": "pentatonic minor" };
+const sayNote = (n) => SPOKEN_NOTE[n] || n;
+function sayChord(name) {
+  const m = /^([A-G][#b]?)(.*)$/.exec(name);
+  return m ? `${sayNote(m[1])} ${CHORD_Q[m[2]] ?? m[2]}` : name;
+}
+// the polite live region: the newest news replaces what has not been read yet; the same words twice in a row
+// are not read again by some screen readers, so the text alternates with a trailing space
+let flip = false;
+function announce(text) {
+  flip = !flip;
+  $("announce").textContent = text + (flip ? "" : " ");
+}
+
+// ------------------------------------------------------------------ the page's engine (pure questions)
+let W = null, wasmBytes = null;
+function cstr(ptr) {
+  const m = new Uint8Array(W.memory.buffer);
+  let e = ptr;
+  while (m[e]) e++;
+  return new TextDecoder().decode(m.subarray(ptr, e));
+}
+async function loadWasm() {
+  if (typeof AMB_WASM !== "undefined") wasmBytes = Uint8Array.from(atob(AMB_WASM), (c) => c.charCodeAt(0)).buffer;
+  else wasmBytes = await (await fetch("amb.wasm")).arrayBuffer();
+  const stub = new Proxy({}, { get: () => () => 0 });
+  const { instance } = await WebAssembly.instantiate(wasmBytes.slice(0), { env: stub, wasi_snapshot_preview1: stub });
+  W = instance.exports;
+  if (W._initialize) W._initialize();
+}
+const pname = (p) => cstr(W.app_param_name(p));
+const ptext = (p, v) => cstr(W.app_param_text(p, v));
+const plo = (p) => W.app_param_lo(p), phi = (p) => W.app_param_hi(p);
+const note = (n) => cstr(W.app_note_name(n));
+const pieceName = (i) => cstr(W.app_piece_name(i));
+
+// ------------------------------------------------------------------ what is kept (per piece)
+let S = null;            // { piece, slots: [{par, pool}], tune, gain, awake }
+function recipe(i) {
+  return { par: Array.from({ length: W.app_nparams() }, (_, p) => W.app_piece_par(i, p)), pool: W.app_piece_pool(i) };
+}
+function loadStore() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE) || "null");
+    if (s && s.slots && s.slots.length === W.app_npieces() && s.slots.every((x) => x.par.length <= W.app_nparams())) {
+      s.slots.forEach((x, i) => {      // kept before the bass and the pulse had their own settings: those from the recipe
+        const r = recipe(i).par;
+        while (x.par.length < r.length) x.par.push(r[x.par.length]);
+      });
+      return s;
+    }
+  } catch { /* none, or unreadable: the recipes */ }
+  return { piece: 0, slots: Array.from({ length: W.app_npieces() }, (_, i) => recipe(i)), tune: 0, gain: 2400, awake: false };
+}
+let saveT = 0;
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch { /* this session only */ } }, 300);
+}
+const cur = () => S.slots[S.piece];
+const par = (p) => (p === P.TUNE ? S.tune : cur().par[p]);
+
+// ------------------------------------------------------------------ the audio
+let ac = null, node = null, queue = [], ready = false, playing = true, frozen = false;
+function send(m) { if (ready) node.port.postMessage(m); else queue.push(m); }
+function sendAll() {
+  for (let p = 0; p < W.app_nparams(); p++) send({ t: "set", p, v: par(p) });
+  send({ t: "set", p: P.MIDI, v: 0 });
+  send({ t: "pool", v: cur().pool });
+  send({ t: "scene", v: S.piece });
+}
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+async function begin() {
+  const go = $("go");
+  go.disabled = true;
+  go.textContent = "Starting...";
+  try {
+    ac = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100, latencyHint: "playback" });
+    await ac.audioWorklet.addModule("worklet.js");
+    node = new AudioWorkletNode(ac, "amb-app", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    // iPhone: straight to the speakers, with the audio session set to "playback" and a silent media element
+    // looping beside it, so the page keeps playing with the screen locked. Through a MediaStream into a media
+    // element (as before) it crackled once locked, when iOS hands audio over in larger blocks than that
+    // path's buffer holds. ?stream goes the old way, ?direct leaves out the silent element (to compare).
+    const opt = (k) => new RegExp("[?&]" + k + "\\b").test(location.search);
+    let routed = false;
+    if (isIOS && opt("stream") && ac.createMediaStreamDestination) {
+      try {
+        const dest = ac.createMediaStreamDestination(), el = new Audio();
+        node.connect(dest);
+        el.srcObject = dest.stream;
+        el.setAttribute("playsinline", "");
+        await el.play();
+        routed = true;
+      } catch { routed = false; }
+    }
+    if (!routed) node.connect(ac.destination);
+    if (isIOS && !routed) {
+      try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch { /* older iOS */ }
+      if (!opt("direct")) keepAlive();
+    }
+    const readyP = new Promise((res) => {
+      node.port.onmessage = (e) => {
+        const m = e.data;
+        if (m.t === "ready") res();
+        else if (m.t === "state") { state = m.st; moving = true; watch(); }
+      };
+    });
+    queue = [{ t: "seed", v: (Date.now() & 0xffff) }];
+    sendAll();
+    queue.push({ t: "gain", v: S.gain }, { t: "regrow" }, { t: "play", v: 1 });
+    node.port.postMessage({ t: "load", wasm: wasmBytes.slice(0), queue });
+    queue = [];
+    await readyP;
+    ready = true;
+    await ac.resume();
+    go.hidden = true;
+    $("play").hidden = false;
+    setPlaying(true);
+    if (document.activeElement === document.body || document.activeElement === go) $("play").focus();   // Begin is gone: its place
+    heard.piece = `${pieceName(S.piece)}, ${spokenKey()}. Growing`;
+    hear();
+    mediaSession();
+    if (S.awake) wake(true);
+    if (Math.abs(ac.sampleRate - 44100) > 1) msg(`Audio at ${ac.sampleRate} Hz: the pitch will be off.`);
+  } catch (err) {
+    go.disabled = false;
+    go.textContent = "Begin";
+    msg("No sound: " + (err && err.message || err));
+  }
+}
+// A second of silence, looping: a media element playing keeps the page's audio going with the screen locked
+// and puts AMB-1 on the lock screen (Play / Rest through the media session).
+let silent = null;
+function keepAlive() {
+  const n = 8000, b = new ArrayBuffer(44 + 2 * n), v = new DataView(b);
+  const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + 2 * n, true); w(8, "WAVEfmt "); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 16000, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, 2 * n, true);
+  silent = new Audio(URL.createObjectURL(new Blob([b], { type: "audio/wav" })));
+  silent.loop = true;
+  silent.setAttribute("playsinline", "");
+  silent.play().catch(() => { /* refused: plays only while the page is on screen */ });
+}
+// what is announced: the piece (on a change), growing or resting, frozen or not, and the chord each time the garden
+// moves on. Gathered for a moment and said together, so a new piece (and the chord it grows) is one message;
+// a chord is said at most every 4 s, and only once the garden has begun.
+const heard = { piece: "", news: [], chord: "", saidChord: "" };
+let hearT = 0, chordT = 0, chordAt = 0;
+function hear() {
+  clearTimeout(hearT);
+  hearT = setTimeout(() => {
+    const parts = [heard.piece, ...heard.news.slice(-3)];
+    if (heard.chord && heard.chord !== heard.saidChord) { parts.push(heard.chord); heard.saidChord = heard.chord; chordAt = performance.now(); }
+    const text = parts.filter(Boolean).join(". ");
+    heard.piece = "";
+    heard.news = [];
+    if (text) announce(text);
+  }, 900);
+}
+function tell(news) {                                       // what a button did, said with whatever else is new
+  heard.news = heard.news.filter((n) => n !== news).concat(news);
+  hear();
+}
+function watch() {
+  if (!state || !ready) return;
+  const name = cstr(W.app_chord_name(state[2], state[4], state[5], state[6], state[7]));
+  const words = sayChord(name);
+  if (words === heard.chord) return;
+  heard.chord = words;
+  $("ring").setAttribute("aria-label", `The pond: the chord ${words}, in ${spokenKey()}. Lily pads on the water.`);
+  clearTimeout(chordT);                                     // at most a chord every 4 s
+  chordT = setTimeout(hear, Math.max(0, 4000 - (performance.now() - chordAt)));
+}
+function setPlaying(on) {
+  if (ready && on !== playing) { tell(on ? "Growing" : "Resting"); }
+  playing = on;
+  send({ t: "play", v: on ? 1 : 0 });
+  $("play").textContent = on ? "Rest" : "Play";
+  if (navigator.mediaSession) navigator.mediaSession.playbackState = on ? "playing" : "paused";
+}
+function mediaSession() {
+  if (!navigator.mediaSession || !window.MediaMetadata) return;
+  navigator.mediaSession.metadata = new MediaMetadata({ title: pieceName(S.piece), artist: "POND" });
+  try {
+    navigator.mediaSession.setActionHandler("play", () => setPlaying(true));
+    navigator.mediaSession.setActionHandler("pause", () => setPlaying(false));
+  } catch { /* not every action exists everywhere */ }
+}
+let lock = null;
+async function wake(on) {
+  try {
+    if (on && navigator.wakeLock) lock = await navigator.wakeLock.request("screen");
+    else if (lock) { await lock.release(); lock = null; }
+  } catch { /* refused: the screen sleeps as usual */ }
+}
+document.addEventListener("visibilitychange", () => {
+  send({ t: "vis", v: document.visibilityState === "visible" });   // hidden: the worklet stops sending the state
+  if (document.visibilityState === "visible") {
+    if (S && S.awake && !lock) wake(true);
+    if (ac && ac.state !== "running" && playing) ac.resume();
+    if (silent && silent.paused) silent.play().catch(() => {});   // after a call or another app's audio
+  }
+});
+
+// ------------------------------------------------------------------ changes
+function setPar(p, v) {
+  v = Math.max(plo(p), Math.min(phi(p), v | 0));
+  if (p === P.TUNE) S.tune = v; else cur().par[p] = v;
+  send({ t: "set", p, v });
+  save();
+}
+function setPool(pool) { cur().pool = pool; send({ t: "pool", v: pool }); save(); }
+function poolAbs() { const p = cur().pool, r = par(P.ROOT); return ((p << r) | (p >> (12 - r))) & 0xfff; }
+function modeName() {
+  const m = par(P.MODE);
+  return cur().pool === W.app_mode_pool(m) ? ptext(P.MODE, m) : "Custom";
+}
+let msgT = 0;
+function msg(s) {
+  $("msg").textContent = s;
+  clearTimeout(msgT);
+  msgT = setTimeout(() => { $("msg").textContent = ""; }, 3000);
+}
+function toggleNote(pc) {
+  const rel = (pc - par(P.ROOT) + 12) % 12, p = cur().pool ^ (1 << rel);
+  if (rel === 0) return msg(`${note(pc)} is the root.`);
+  let n = 0;
+  for (let i = 0; i < 12; i++) n += (p >> i) & 1;
+  if (n < 3) return msg("Three notes at least.");
+  const focused = document.activeElement && document.activeElement.closest && document.activeElement.closest("#scale") ? pc : -1;
+  setPool(p);
+  refresh();
+  if (focused >= 0) $("scale").children[focused].focus();   // the table is rebuilt: the focus stays on the note
+}
+function choosePiece(i) {
+  if (i !== S.piece) {
+    S.piece = i;
+    sendAll();
+    send({ t: "seed", v: (Date.now() & 0xffff) });
+    send({ t: "regrow" });
+    save();
+  }
+  mediaSession();
+  refresh();
+  heard.piece = `${pieceName(S.piece)}, ${spokenKey()}`;   // said with the chord it grows, once it has settled
+  hear();
+}
+function resetPiece() {
+  const r = recipe(S.piece);
+  S.slots[S.piece] = r;
+  sendAll();
+  send({ t: "regrow" });
+  save();
+  refresh();
+}
+
+// ------------------------------------------------------------------ the controls: plain tables in fieldsets
+function rangeRow(p, label) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="n"><label for="p${p}">${label || pname(p)}</label></td><td><input type="range" id="p${p}" min="${plo(p)}" max="${phi(p)}" step="1"></td><td class="v" id="p${p}-v"></td>`;
+  const input = tr.querySelector("input"), out = tr.querySelector(".v");
+  if (TIP[p]) { tr.title = TIP[p]; input.setAttribute("aria-description", TIP[p]); }
+  out.setAttribute("aria-hidden", "true");                  // the slider says its own value
+  input.value = par(p);
+  out.textContent = ptext(p, par(p));
+  input.setAttribute("aria-valuetext", ptext(p, par(p)));
+  input.oninput = () => {
+    setPar(p, +input.value);
+    out.textContent = ptext(p, par(p));
+    input.setAttribute("aria-valuetext", ptext(p, par(p)));
+    if (p === P.TEMPO) $("keyLine").textContent = keyLine();
+  };
+  return tr;
+}
+function build() {
+  const right = $("right");
+  right.innerHTML = "";
+  for (const [name, ps] of GROUPS) {
+    const fs = document.createElement("fieldset"), t = document.createElement("table");
+    fs.innerHTML = `<legend>${name}</legend>`;
+    ps.forEach(([p, label]) => t.appendChild(rangeRow(p, label)));
+    fs.appendChild(t);
+    right.appendChild(fs);
+  }
+  // the key: root, mode, the scale's notes, tempo, tune, volume
+  const fs = document.createElement("fieldset"), t = document.createElement("table");
+  fs.innerHTML = `<legend>Key</legend>`;
+  const sel = (label, id, opts, value, on) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="n"><label for="${id}">${label}</label></td><td colspan="2"><select id="${id}"></select></td>`;
+    const s = tr.querySelector("select");
+    opts.forEach((o, i) => { const e = document.createElement("option"); e.value = i; e.textContent = o; s.appendChild(e); });
+    s.value = value;
+    s.onchange = () => on(+s.value);
+    t.appendChild(tr);
+  };
+  sel("Root", "root", Array.from({ length: 12 }, (_, i) => note(i)), par(P.ROOT), (v) => { setPar(P.ROOT, v); refresh(); });
+  const modes = Array.from({ length: W.app_nmodes() }, (_, m) => ptext(P.MODE, m));
+  sel("Mode", "mode", modeName() === "Custom" ? modes.map((m, i) => (i === par(P.MODE) ? m + " (changed)" : m)) : modes, par(P.MODE),
+      (m) => { setPar(P.MODE, m); setPool(W.app_mode_pool(m)); refresh(); });
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td class="n" id="scaleName">Scale</td><td colspan="2" id="scale" role="group" aria-labelledby="scaleName"></td>`;
+  const ap = poolAbs();
+  for (let i = 0; i < 12; i++) {
+    const b = document.createElement("button");
+    b.textContent = note(i);
+    b.setAttribute("aria-pressed", (ap >> i) & 1 ? "true" : "false");
+    // the name keeps the text shown (for voice control), and says a flat as a flat
+    if (sayNote(note(i)) !== note(i)) b.setAttribute("aria-label", `${note(i)} (${sayNote(note(i))})`);
+    if (i === par(P.ROOT)) { b.className = "root"; b.title = "The root"; b.setAttribute("aria-description", "The root: it stays in the scale."); }
+    b.onclick = () => toggleNote(i);
+    tr.lastChild.appendChild(b);
+  }
+  t.appendChild(tr);
+  t.appendChild(rangeRow(P.TEMPO));
+  t.appendChild(rangeRow(P.TUNE));
+  const vr = document.createElement("tr");
+  vr.innerHTML = `<td class="n"><label for="vol">Volume</label></td><td><input type="range" id="vol" min="0" max="4096" step="16"></td><td class="v"></td>`;
+  const vol = vr.querySelector("input"), vout = vr.querySelector(".v");
+  const volText = () => { const t = Math.round(100 * S.gain / 4096) + "%"; vout.textContent = t; vol.setAttribute("aria-valuetext", t); };
+  vout.setAttribute("aria-hidden", "true");
+  vol.value = S.gain;
+  volText();
+  vol.oninput = () => { S.gain = +vol.value; send({ t: "gain", v: S.gain }); volText(); save(); };
+  t.appendChild(vr);
+  fs.appendChild(t);
+  right.appendChild(fs);
+}
+const keyLine = () => `${note(par(P.ROOT))} ${modeName()}, ${par(P.TEMPO)} bpm`;
+const spokenKey = () => `${sayNote(note(par(P.ROOT)))} ${MODE_WORDS[modeName()] || modeName()}, ${par(P.TEMPO)} beats a minute`;
+function buildTracks() {
+  const el = $("tracks");
+  if (!el.querySelector("button"))
+    for (let i = 0; i < W.app_npieces(); i++) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.innerHTML = `<span class="num" aria-hidden="true">${i + 1}</span><span class="ttl">${pieceName(i)}</span>`;
+      b.setAttribute("aria-label", `${i + 1}. ${pieceName(i)}`);
+      b.onclick = () => choosePiece(i);
+      el.appendChild(b);
+    }
+  el.querySelectorAll("button").forEach((b, i) => {
+    if (i === S.piece) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+  });
+}
+function refresh() {
+  buildTracks();
+  $("keyLine").textContent = keyLine();
+  $("colour").value = par(P.PADTONE);
+  $("octVal").textContent = ptext(P.BOCT, par(P.BOCT));
+  $("reset").textContent = `Reset ${pieceName(S.piece)}`;
+  delete $("reset").dataset.armed;
+  build();
+  dirty = true;
+}
+
+// ------------------------------------------------------------------ the pond
+let state = null, dirty = true;
+const cv = $("ring"), g = cv.getContext("2d");
+const C = { bg: "#0e2a22", bank: "#245a54", shore: "#16403a", water: "#0c2c30", deep: "#081c22",
+            glint: "#96c4b0", pad: "#bad860", padT: "#3e7646", bass: "#60944e", bell: "#96d6a8",
+            pulse: "#d6e4a4", text: "#e8f0d6", line: "#2e6048", frost: "#c4e0cc", dim: "#7ea484",
+            koi: "#d6763a", koiP: "#ecc496" };
+const FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+const PX = 2;
+const PADS = [[52, 116], [84, 82], [108, 66], [132, 54], [176, 64], [208, 76],
+              [132, 80], [196, 114], [150, 136], [126, 118], [183, 139], [225, 129]];
+const DROPS = [[80, 68], [150, 72], [156, 88], [172, 100]];
+const DRIPS = [[64, 70], [140, 104], [200, 88]];
+const WIND = [0, 1, 1, 0, 0, -1, -1, 0];
+const HEADS = [[0, 0, 72, 32, 0], [136, 12, 80, 24, 3], [200, 0, 40, 36, 5], [0, 58, 48, 30, 2]];
+const bg = new Image();
+const bloomCv = document.createElement("canvas");
+bloomCv.width = 240; bloomCv.height = 144;
+const bloomG = bloomCv.getContext("2d", { willReadFrequently: true });
+let bloom = null;
+bg.onload = () => {
+  bloomG.drawImage(bg, 0, 0, 240, 144);
+  bloom = bloomG.getImageData(0, 0, 240, 144).data;
+  dirty = true;
+};
+bg.src = "pond-bg.png";
+let geom = null;
+function size() {
+  const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  cv.width = Math.round(r.width * d);
+  cv.height = Math.round(r.height * d);
+  geom = { d, w: cv.width, h: cv.height, s: cv.width / 240 };
+  dirty = true;
+}
+function block(x, y, w, h, c) {
+  g.fillStyle = c;
+  g.fillRect(x * geom.s, y * geom.s, w * geom.s, h * geom.s);
+}
+function fell(cx, cy, rx, ry, c) {
+  cx &= ~1; cy &= ~1;
+  if (rx < PX) rx = PX;
+  if (ry < PX) ry = PX;
+  rx &= ~1; ry &= ~1;
+  for (let y = -ry; y <= ry; y += PX) {
+    const u = y / ry;
+    const w = Math.floor(rx * Math.sqrt(Math.max(0, 1 - u * u))) & ~1;
+    block(cx - w, cy + y, w * 2 + PX, PX, c);
+  }
+}
+function foval(cx, cy, rx, ry, c) {
+  cx &= ~1; cy &= ~1;
+  if (rx < PX) rx = PX;
+  if (ry < PX) ry = PX;
+  rx &= ~1; ry &= ~1;
+  let ix = Math.max(PX, rx - PX), iy = Math.max(PX, ry - PX);
+  for (let y = -ry; y <= ry; y += PX) {
+    const u = y / ry;
+    if (u < -1 || u > 1) continue;
+    const w = Math.floor(rx * Math.sqrt(1 - u * u)) & ~1;
+    let wi = 0;
+    if (y >= -iy && y <= iy) {
+      const ui = y / iy;
+      if (ui > -1 && ui < 1) wi = Math.floor(ix * Math.sqrt(1 - ui * ui)) & ~1;
+    }
+    const span = Math.max(PX, w - wi);
+    block(cx - w, cy + y, span, PX, c);
+    block(cx + wi, cy + y, span, PX, c);
+  }
+}
+function tuft(x, y) {
+  block(x, y - 18, PX, 18, C.bass);
+  block(x + 4, y - 24, PX, 24, C.padT);
+  block(x - 4, y - 14, PX, 14, C.bass);
+  block(x + 2, y - 22, 6, PX, C.pad);
+}
+function rock(x, y, rx, ry) {
+  fell(x + PX, y + PX, rx, ry, C.deep);
+  fell(x, y, rx, ry, C.dim);
+  block(x - Math.floor(rx / 2), y - Math.floor(ry / 2), PX, PX, C.frost);
+}
+function frame(x, y, w, h, c) {
+  block(x, y, w, PX, c);
+  block(x, y + h - PX, w, PX, c);
+  block(x, y, PX, h, c);
+  block(x + w - PX, y, PX, h, c);
+}
+function isHead(x, y) {
+  if (!bloom || x < 0 || y < 0 || x > 239 || y > 143) return false;
+  const i = (y * 240 + x) * 4, r = bloom[i], gv = bloom[i + 1], b = bloom[i + 2];
+  return r >= 170 && r > gv + 8 && r > b + 40 && b < 150;
+}
+function swayHeads(img, x0, y0, w, h, dx) {
+  if (!dx || !bloom) return;
+  const d = img.data;
+  const pix = (x, y) => (y * 240 + x) * 4;
+  const copy = (to, from) => { d[to] = bloom[from]; d[to + 1] = bloom[from + 1]; d[to + 2] = bloom[from + 2]; };
+  for (let y = y0; y < y0 + h; y++) {
+    for (let x = x0; x < x0 + w; x++) {
+      if (!isHead(x, y)) continue;
+      let from = pix(x, y);
+      for (let k = 1; k <= 8; k++) {
+        if (x + k < 240 && !isHead(x + k, y)) { from = pix(x + k, y); break; }
+        if (x - k >= 0 && !isHead(x - k, y)) { from = pix(x - k, y); break; }
+      }
+      copy(pix(x, y), from);
+    }
+  }
+  for (let y = y0; y < y0 + h; y++) {
+    for (let x = x0; x < x0 + w; x++) {
+      if (isHead(x, y) && x + dx >= 0 && x + dx < 240) copy(pix(x + dx, y), pix(x, y));
+    }
+  }
+}
+function splash(x, y, glow, drop) {
+  const gv = glow <= 0 ? 0 : glow >= 1 ? 16 : Math.round(glow * 16);
+  if (gv <= 1) return;
+  if (gv > 7) {
+    const rise = (gv - 7) * (drop ? 2 : 1), h = drop ? 8 : 6;
+    block(x, y - rise - h, PX, h - PX, C.bell);
+    block(x, y - rise - PX, PX, PX, C.pulse);
+  } else {
+    const w = (drop ? 6 : 4) + (7 - gv) * (drop ? 3 : 2);
+    block(x - Math.floor(w / 2), y - PX, w, PX, drop ? C.bell : C.glint);
+    block(x - w, y, w * 2, PX, drop ? C.bell : C.glint);
+  }
+}
+function drawKoi(x, y, dir, deep) {
+  const x0 = dir > 0 ? x - 12 : x;
+  if (deep > 2) { block(x0, y, 10, PX, C.koi); return; }
+  block(x0 + 4, y - 2, 8, 4, C.koi);
+  block(dir > 0 ? x0 : x0 + 10, y - 2, 4, PX, C.koi);
+  block(dir > 0 ? x0 : x0 + 10, y + 2, 4, PX, C.koi);
+  block(dir > 0 ? x0 + 6 : x0 + 4, y - 2, 4, PX, C.koiP);
+  block(dir > 0 ? x - 4 : x + 2, y - 2, PX, PX, C.deep);
+  if (!deep) {
+    block(x - 4, y + PX, 8, PX, C.glint);
+    block(x - 8, y + PX * 2, 16, PX, C.glint);
+  }
+}
+function koiVisit(ms) {
+  const SWIM = 240, GAP = [420, 780, 540, 960, 660, 1140];
+  const LANE = [[86, 72, 188], [100, 108, 204], [74, 56, 168]];
+  let t = Math.floor(ms / 16.7);
+  for (let n = 0; n < 20000; n++) {
+    const gap = GAP[n % 6] + ((n * 73) & 180);
+    if (t < gap) return;
+    t -= gap;
+    if (t < SWIM) {
+      const dir = (n & 1) ? 1 : -1, lane = LANE[n % 3];
+      const along = Math.floor(t * (lane[2] - lane[1]) / SWIM);
+      const x = dir > 0 ? lane[1] + along : lane[2] - along;
+      let deep = 0;
+      if (t < 40) deep = Math.floor((40 - t) / 6);
+      else if (t > SWIM - 40) deep = Math.floor((t - (SWIM - 40)) / 6);
+      drawKoi(x, lane[0] + deep, dir, deep);
+      return;
+    }
+    t -= SWIM;
+  }
+}
+function rippleFade(x, y, w, a) {
+  if (a < 1) return;
+  if (a > 16) a = 16;
+  x &= ~1; y &= ~1;
+  if (w < 4) w = 4;
+  w &= ~1;
+  const step = a < 4 ? 4 : 2;
+  const ga = a / 16;
+  g.globalAlpha = ga;
+  for (let i = 0; i < w; i += step) block(x - w / 2 + i, y - PX, step > 2 ? PX : PX, PX, C.glint);
+  for (let i = 0; i < w * 2; i += step) block(x - w + i, y, PX, PX, C.bell);
+  g.globalAlpha = 1;
+}
+function rainSheet(thunder) {
+  const f = Math.floor(performance.now() / 16.7) >>> 0;
+  const n = thunder ? 34 : 22, period = thunder ? 46 : 60, fall = thunder ? 24 : 34;
+  for (let i = 0; i < n; i++) {
+    const age = (f + i * 17) % period;
+    const h = Math.imul(i, 2246822519) >>> 0;
+    const x = 6 + (h % 228);
+    const water = ((h >>> 8) & 7) === 0 ? 152 + ((h >>> 13) % 46) : 64 + ((h >>> 9) % 70);
+    if (age < fall) {
+      const y = 2 + Math.floor((water - 4) * age / fall), len = thunder ? 12 : 8;
+      if (y < 144) {
+        block(x & ~1, y & ~1, PX, Math.max(PX, len - PX), C.bell);
+        block(x & ~1, (y + len - PX) & ~1, PX, PX, C.pulse);
+      }
+    } else if (water < 146) {
+      const rip = age - fall, life = period - fall;
+      const w = 4 + Math.floor(rip * (thunder ? 34 : 24) / life);
+      const a = rip < life / 2 ? 14 : 14 - Math.floor((rip - life / 2) * 14 / (life - life / 2));
+      rippleFade(x, water, w, a);
+      if (rip > life / 3) {
+        const a2 = a > 5 ? a - 5 : 0;
+        if (a2) rippleFade(x, water + PX, 4 + Math.floor((rip - life / 3) * 16 / life), a2);
+      }
+    }
+  }
+}
+function cloudCover(thunder, flash) {
+  if (!geom) return;
+  g.fillStyle = thunder ? "rgba(2, 8, 12, 0.72)" : "rgba(2, 8, 12, 0.48)";
+  g.fillRect(0, 0, geom.w, geom.h);
+  if (thunder && flash > 0.04) {
+    const lit = flash > 0.45 ? 1 : flash / 0.45;
+    g.fillStyle = `rgba(236, 244, 236, ${Math.min(0.82, lit)})`;
+    g.fillRect(0, 0, geom.w, geom.h);
+  }
+}
+function skyFlash(amount, boltX) {
+  if (!geom || (boltX | 0) < 8) return;
+  if ((amount > 0.45 ? 1 : amount / 0.45) < 0.4) return;
+  let x = boltX | 0, s = (x * 13 + 9) | 0;
+  for (let y = 2; y < 130; y += 8) {
+    s = (Math.imul(s, 1103515245) + 12345) | 0;
+    x += ((s >>> 16) & 7) - 3;
+    if (x < 2) x = 2;
+    if (x > 232) x = 232;
+    block(x - 2, y, 6, 10, C.deep);
+    block(x - 1, y, 4, 10, C.text);
+    block(x, y, 2, 10, C.frost);
+  }
+}
+function draw() {
+  if (!geom || !W) return;
+  const s = geom.s, st = state;
+  const on = st ? st[0] > 0 : false, fr = st ? st[1] > 0 : false;
+  const step = Math.floor(performance.now() / 200);
+  if (bg.complete && bg.naturalWidth) {
+    bloomG.drawImage(bg, 0, 0, 240, 144);
+    if (!fr && bloom) {
+      const img = bloomG.getImageData(0, 0, 240, 144);
+      const phase = step & 7;
+      for (const [x, y, w, h, p] of HEADS)
+        swayHeads(img, x, y, w, h, WIND[(phase + p) & 7]);
+      bloomG.putImageData(img, 0, 0);
+    }
+    g.drawImage(bloomCv, 0, 0, geom.w, geom.h);
+  } else block(0, 0, 240, 144, C.shore);
+  if (!fr) koiVisit(performance.now());
+  if (S && (S.piece === 5 || S.piece === 8))
+    cloudCover(S.piece === 8, S.piece === 8 && st && st.length > 2 ? st[st.length - 2] : 0);
+  if (on && st && !fr) {
+    for (let i = 0; i < NLOOP; i++) splash(DROPS[i][0], DROPS[i][1], st[21 + i], true);
+    if (!st[31]) for (let i = 0; i < 3; i++) splash(DRIPS[i][0], DRIPS[i][1], st[28 + i], false);
+  }
+  if (S && !fr && (S.piece === 5 || S.piece === 8))
+    rainSheet(S.piece === 8);
+  if (S && S.piece === 8 && st && st.length > 2)
+    skyFlash(st[st.length - 2], st[st.length - 1]);
+  moving = !fr;
+  if (fr) {
+    g.fillStyle = C.frost;
+    g.font = `${Math.round(11 * s)}px ${FONT}`;
+    g.textAlign = "left";
+    g.textBaseline = "top";
+    g.fillText("still", 6 * s, 4 * s);
+  }
+}
+// the playheads move with the music; with reduced motion asked for, the pond is redrawn every 2 s instead
+const calm = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
+let moving = false, drawnAt = 0;
+function tick(t) {
+  const calmWait = calm.matches && t - drawnAt < 2000;
+  const wait = S && (S.piece === 5 || S.piece === 8) ? 40 : 100;
+  if (dirty || (moving && t - drawnAt >= wait && !calmWait)) { dirty = false; drawnAt = t; draw(); }
+  requestAnimationFrame(tick);
+}
+cv.addEventListener("click", (e) => {
+  if (!geom) return;
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * geom.d / geom.s, y = (e.clientY - r.top) * geom.d / geom.s;
+  let best = -1, bd = 18;
+  for (let i = 0; i < 12; i++) {
+    const dist = Math.hypot(PADS[i][0] - x, PADS[i][1] - y);
+    if (dist < bd) { bd = dist; best = i; }
+  }
+  if (best >= 0) toggleNote(best);
+});
+
+// ------------------------------------------------------------------ start
+(async function main() {
+  await loadWasm();
+  S = loadStore();
+  if (typeof S.gain !== "number") S.gain = 2400;
+  refresh();
+  size();
+  new ResizeObserver(size).observe(cv);
+  requestAnimationFrame(tick);
+  $("go").onclick = begin;
+  $("play").onclick = () => setPlaying(!playing);
+  $("freeze").onclick = (e) => {
+    if (!ready) return;
+    frozen = !frozen;
+    send({ t: "freeze", v: frozen ? 1 : 0 });
+    e.currentTarget.setAttribute("aria-pressed", frozen ? "true" : "false");
+    tell(frozen ? "Frozen: the chord holds, the reverb rings on" : "Thawed");
+  };
+  $("next").onclick = () => {
+    send({ t: "next" });
+    if (ready) tell(playing ? "Next chord, on the bar" : "Next chord");
+  };
+  $("colour").onchange = (e) => { setPar(P.PADTONE, +e.target.value); refresh(); };
+  const oct = (d) => { setPar(P.BOCT, par(P.BOCT) + d); refresh(); msg(`Drops octave ${ptext(P.BOCT, par(P.BOCT))}`); };
+  $("octDn").onclick = () => oct(-1);
+  $("octUp").onclick = () => oct(1);
+  $("awake").checked = !!S.awake;
+  $("awake").onchange = (e) => { S.awake = e.target.checked; wake(S.awake); save(); };
+  $("reset").onclick = (e) => {
+    const b = e.currentTarget;
+    if (b.dataset.armed) { resetPiece(); return; }
+    b.dataset.armed = "1";
+    b.textContent = "Click again to reset";
+    msg(`Press again to put ${pieceName(S.piece)} back to its recipe.`);
+  };
+})();
+</script>
+</body>
+</html>

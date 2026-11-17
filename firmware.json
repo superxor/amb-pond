@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "id": "pond",
+  "name": "POND",
+  "author": "Charles Vestal",
+  "license": "MPL-2.0",
+  "tagline": "A generative garden pond for the FM-1",
+  "description": "POND turns the M-VAVE FM-1 into a generative garden pond, derived from AMB-1. It plays itself from the moment it is switched on: breathing voices, water drops on loops of unequal length, a gliding bass and quiet drips, through a tape echo and a plate reverb. It has eight pieces. You don't perform it, you tend it: pick a piece and a scale, take notes out, put them back, and let the pond grow.",
+  "tags": ["ambient", "generative", "fm"],
+  "source": "https://github.com/charlesvestal/fm1-amb",
+  "screenshot": "docs/img/screen-garden.png",
+  "hardware": {
+    "models": ["FM-1"],
+    "flash": ["856014", "B36014"],
+    "features": ["usb-audio-in", "screen-reader"]
+  },
+  "credits": "Derived from AMB-1 by Charles Vestal. Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments)."
+}
