@@ -1,6 +1,6 @@
 # POND's build settings (fm1-base's tools/build.py: ./build.sh). Derived from AMB-1.
 name = "POND"                  # the build's files: pond.fwsc, pond-X.Y.fwsc
-id_prefix = "FM-1_8"           # package identity: dev FM-1_800, releases FM-1_8XXYYZZ
+id_prefix = "FM-1_8008"        # package identity, for a dev build and a release
 usb_manufacturer = "POND"
 usb_product = "POND FM-1"
 ble = false                    # POND never uses the radio

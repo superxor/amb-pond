@@ -39,7 +39,7 @@ On Linux x86-64 the toolchain runs natively and no container is needed.
 
 ```
 ./build.sh                    # app/build/pond.fwsc
-./build.sh --release X.Y      # app/build/pond-X.Y.fwsc, identity FM-1_8XXYYZZ
+./build.sh --release X.Y      # app/build/pond-X.Y.fwsc, identity FM-1_8008
 ./build.sh --host             # the simulator: app/build/host/amb_host
 ./build.sh --web              # the browser emulator: app/build/emu/
 web/app/build.sh              # the web app (the engine alone, for phone and desktop): app/build/app/
