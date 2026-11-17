@@ -6,6 +6,14 @@ POND is derived from [AMB-1](https://github.com/charlesvestal/fm1-amb) by Charle
 
 ## The screen
 
+<table>
+  <tr>
+    <td align="center"><img src="docs/img/screen-pond.png" width="220" alt="The pond in daylight"><br><b>Pond</b></td>
+    <td align="center"><img src="docs/img/screen-rain.png" width="220" alt="Rain over a darker pond"><br><b>Rain</b></td>
+    <td align="center"><img src="docs/img/screen-thunder.png" width="220" alt="A thunderstorm, darker still"><br><b>Thunder</b></td>
+  </tr>
+</table>
+
 The picture is a pond seen from the bank. Flower heads shift a little in the wind. Now and then a koi rises, crosses the open water, and sinks again. The header keeps the piece, the key, and the tempo. The knob strip slides away after three seconds, and the pond continues into that space. Turn a knob, or change page, and the strip comes back.
 
 Rain falls as streaks and lands in rings that spread and fade. The water sits under cloud. Thunder is darker. Lightning flashes, sometimes with a bolt and sometimes only as light, and it does not always arrive with the sound. Freeze the pond and the corner reads "still".
