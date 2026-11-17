@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: amb-release-${{ github.ref }}
+  group: pond-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          TITLE: AMB-1
+          TITLE: POND
         run: |
           set -euo pipefail
           if [[ "$GITHUB_REF" != refs/tags/* ]]; then exit 0; fi
@@ -55,7 +55,7 @@ jobs:
       tests-block: true
       build: |
         set -euo pipefail
-        pkg=amb
+        pkg=pond
         # the builder checks out without submodules: fm1-base (base/) and its felucca-bsp (base/bsp/), at the
         # commits this one links
         git submodule update --init --recursive
@@ -92,7 +92,7 @@ jobs:
         cp app/build/firmware.json build/release-assets/
       test: |
         set -euo pipefail
-        pkg=amb
+        pkg=pond
         [ -f "app/build/$pkg.fwsc" ]
         sh tests/run_tests.sh
       packages: build/release-assets/*

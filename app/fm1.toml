@@ -11,14 +11,14 @@ include = ["dsp"]
 o2 = ["dsp/amb.c"]             # the engine, at -O2
 # the site
 tagline = "A generative garden pond for the FM-1"
-repo = "https://github.com/charlesvestal/fm1-amb"
+repo = "https://github.com/superxor/amb-pond"
 licence = "MPL-2.0"
 credits = "Derived from AMB-1 by Charles Vestal. Built on fm1-base and felucca-bsp, from Felucca by Leo Kuroshita (Hügelton Instruments)."
 
 # firmware.json, for firmware hubs (fm1-base docs/FIRMWARE-JSON.md)
-author = "Charles Vestal"
-description = "POND turns the M-VAVE FM-1 into a generative garden pond, derived from AMB-1. It plays itself from the moment it is switched on: breathing voices, water drops on loops of unequal length, a gliding bass and quiet drips, through a tape echo and a plate reverb. It has eight pieces. You don't perform it, you tend it: pick a piece and a scale, take notes out, put them back, and let the pond grow."
+author = "superxor"
+description = "POND turns the M-VAVE FM-1 into a generative garden pond, derived from AMB-1. It plays itself from the moment it is switched on: breathing voices, water drops on loops of unequal length, a gliding bass and quiet drips, through a tape echo and a plate reverb. Nine pieces, from a quiet pond to rain and thunder. You don't perform it, you tend it: pick a piece and a scale, take notes out, put them back, and let the pond grow."
 tags = ["ambient", "generative", "fm"]
-install = ""
-site = ""
-screenshot = "docs/img/screen-garden.png"
+install = "https://github.com/superxor/amb-pond/releases"
+site = "https://github.com/superxor/amb-pond"
+screenshot = "docs/card.png"

@@ -88,7 +88,7 @@ said NEXT CHORD ON THE BAR
 # a help card: its button, then its lines
 press SAVE
 wait 1000
-said SAVE button. SAVES ALL EIGHT PIECES. KEEP HOLDING: THE PIECE BACK TO ITS RECIPE
+said SAVE button. SAVES ALL NINE PIECES. KEEP HOLDING: THE PIECE BACK TO ITS RECIPE
 release SAVE
 tap SAVE
 said SAVED
