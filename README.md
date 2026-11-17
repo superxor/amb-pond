@@ -2,7 +2,7 @@
 
 A generative garden pond for the [M-VAVE FM-1](https://github.com/charlesvestal/fm1-base). Switch it on and it is already playing: breathing voices, drops on loops of unequal length, a gliding bass, and quiet drips, through a tape echo and a plate reverb. You don't perform it. You tend it. Pick a piece, choose a scale, take notes out, put them back, and leave the pond to grow.
 
-POND is derived from [AMB-1](https://github.com/charlesvestal/fm1-amb) by Charles Vestal. The package identity is `FM-1_8…`, so it does not collide with AMB-1, and a saved AMB-1 project is not read as a pond.
+POND is derived from [AMB-1](https://github.com/charlesvestal/fm1-amb) by Charles Vestal.
 
 ## The screen
 
