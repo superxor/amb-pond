@@ -55,6 +55,7 @@ expect store_writes 1
 reboot
 wait 300
 expect piece 6
-turn PRESET 2
+# nine pieces: from Moss, three steps wrap back to Pond
+turn PRESET 3
 expect piece 0
 expect par1 67
